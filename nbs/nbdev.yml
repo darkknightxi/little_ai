@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "littleai"
+  site-url: "https://darkknightxi.github.io/little_ai"
+  description: "A light-weight and flexible deep learning library."
+  repo-branch: main
+  repo-url: "https://github.com/darkknightxi/little_ai"
