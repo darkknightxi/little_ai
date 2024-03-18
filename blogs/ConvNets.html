@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.550">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Kartikeya Khare">
+<meta name="dcterms.date" content="2024-03-06">
+
+<title>Convolutional Neural Networks from Scratch</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="ConvNets_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ConvNets_files/libs/quarto-html/quarto.js"></script>
+<script src="ConvNets_files/libs/quarto-html/popper.min.js"></script>
+<script src="ConvNets_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ConvNets_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ConvNets_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ConvNets_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ConvNets_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ConvNets_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ConvNets_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#importing-libraries" id="toc-importing-libraries" class="nav-link active" data-scroll-target="#importing-libraries">Importing Libraries</a></li>
+  <li><a href="#why-convnets" id="toc-why-convnets" class="nav-link" data-scroll-target="#why-convnets">Why ConvNets</a></li>
+  <li><a href="#convolution-operation" id="toc-convolution-operation" class="nav-link" data-scroll-target="#convolution-operation">Convolution Operation</a></li>
+  <li><a href="#convolutions-in-pytorch" id="toc-convolutions-in-pytorch" class="nav-link" data-scroll-target="#convolutions-in-pytorch">Convolutions in PyTorch</a></li>
+  <li><a href="#convolutions-over-a-batch-of-images" id="toc-convolutions-over-a-batch-of-images" class="nav-link" data-scroll-target="#convolutions-over-a-batch-of-images">Convolutions over a batch of images</a></li>
+  <li><a href="#strides-and-padding" id="toc-strides-and-padding" class="nav-link" data-scroll-target="#strides-and-padding">Strides and Padding</a></li>
+  <li><a href="#creating-a-cnn" id="toc-creating-a-cnn" class="nav-link" data-scroll-target="#creating-a-cnn">Creating a CNN</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Convolutional Neural Networks from Scratch</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Kartikeya Khare </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">March 6, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This blog post is a code-first introduction to Convolutional Networks (ConvNets). We will build our own ConvNet from scratch and understand the fundamentals of how and why they work so well, particularly for image processing tasks.</p>
+<p>NB: This blog uses some functions from the <a href="https://github.com/darkknightxi/little_ai">little_ai</a> library I am currently building.</p>
+<section id="importing-libraries" class="level1">
+<h1>Importing Libraries</h1>
+<div id="86441f20-cde6-497f-bad4-d4ae8b58b449" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> nn</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> default_collate</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Mapping</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> little_ai.training <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> little_ai.datasets <span class="im">import</span> <span class="op">*</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="c109d8b3-f400-479d-9bcc-c1423781144d" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pickle,gzip,math,os,time,shutil,torch,matplotlib <span class="im">as</span> mpl, numpy <span class="im">as</span> np</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd,matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> urllib.request <span class="im">import</span> urlretrieve</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> tensor</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn.functional <span class="im">as</span> F</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> optim</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Mapping</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="bba30b7e-d94e-4b71-8947-8ed2ec0a1411" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>mpl.rcParams[<span class="st">'image.cmap'</span>] <span class="op">=</span> <span class="st">'gray'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="a3ef09ce-666e-4a7b-963b-80edb60ec35b" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>MNIST_URL<span class="op">=</span><span class="st">'https://github.com/mnielsen/neural-networks-and-deep-learning/blob/master/data/mnist.pkl.gz?raw=true'</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>path_data <span class="op">=</span> Path(<span class="st">'data'</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>path_data.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>path_gz <span class="op">=</span> path_data<span class="op">/</span><span class="st">'mnist.pkl.gz'</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> path_gz.exists(): urlretrieve(MNIST_URL, path_gz)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> gzip.<span class="bu">open</span>(path_gz, <span class="st">'rb'</span>) <span class="im">as</span> f: ((x_train, y_train), (x_valid, y_valid), _) <span class="op">=</span> pickle.load(f, encoding<span class="op">=</span><span class="st">'latin-1'</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>x_train, y_train, x_valid, y_valid <span class="op">=</span> <span class="bu">map</span>(tensor, [x_train, y_train, x_valid, y_valid])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="why-convnets" class="level1">
+<h1>Why ConvNets</h1>
+<p><img src="ConvNets_files/figure-html/71775a2f-5621-4cfe-a948-48da40f38be2-1-1f733cfc-7a1b-4790-bbb2-99c62257ccd8.png" class="img-fluid" alt="NN architecture"> &gt; Figure 1: A simple neural net with two hidden layers</p>
+<p>Images have properties that necessitate the need for specialized architectures.</p>
+<ul>
+<li>They are high-dimensional. RGB images of dimensions <span class="math inline">\(224\times224\)</span> are very common (i.e., <span class="math inline">\(150, 528\)</span> input dimensions). Hidden layers in fully connected networks are generally larger than the input size, so even for a shallow network, the number of weights would exceed <span class="math inline">\(150,528^2\)</span> or <span class="math inline">\(22\)</span> billion. This poses obvious practical problems in terms of the required training data, memory, and computation.</li>
+<li>Nearby image pixels are statistically related. However, fully connected networks have no notion of “nearby” and treat the relation between every input equally.</li>
+<li>The interpretation of an image is stable under geometric transformations. An image of a tree is still an image of a tree if we shift it leftwards by a few pixels. However, this shift is stable under geometric transformations. Hence, a fully connected model must learn the patterns of pixels that signify a tree separately at every position, which is inefficient.</li>
+</ul>
+<p>Convolutional layers process each local image region independently, using parameters shared across the whole image. They use fewer parameters than fully connected layers, exploit the spatial relationships between nearby pixels, and don’t have to re-learn the interpretation of pixels at every position.</p>
+<p><img src="ConvNets_files/figure-html/71775a2f-5621-4cfe-a948-48da40f38be2-2-526f7c71-95ca-46c6-a220-522ec88abb91.png" class="img-fluid" alt="CNN architecture"> &gt; Figure 2: Architecture of a simple ConvNet</p>
+</section>
+<section id="convolution-operation" class="level1">
+<h1>Convolution Operation</h1>
+<p>Convolutional layers perform the convolution operation using kernels (or filters) which is simply a matrix, over an image. Convolution is a simple mathematical operation that involves addition and multiplication.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/c2b5876c-4b45-4528-a7d0-412e9e96fec7-1-29eb9b7e-7f1e-4809-b209-e6b1ce37a4a6.png" class="img-fluid figure-img"></p>
+<figcaption>Convolution Operation</figcaption>
+</figure>
+</div>
+<blockquote class="blockquote">
+<p>Figure 3: Convolution operation using a <span class="math inline">\(2\times2\)</span> kernel over a <span class="math inline">\(3\times4\)</span> image that results in a <span class="math inline">\(2\times3\)</span> output matrix. The kernel slides over the image, adding the products of the overlapping matrix values. Source: <a href="https://www.deeplearningbook.org">Deep Learning</a> by Goodfellow, et al.</p>
+</blockquote>
+<p>Now, let’s implement our own convolution operation using numpy. We’ll choose an image from the training set and create a simple <span class="math inline">\(3\times 3\)</span> matrix as our kernel and, as we’ll see, the convolution operation with the right choice of the kernel will be able to identify some pattern in our image.</p>
+<div id="16fd0121-b059-4a0d-af82-d6384e81a815" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>x_imgs <span class="op">=</span> x_train.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">28</span>, <span class="dv">28</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>xv_imgs <span class="op">=</span> x_valid.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">28</span>, <span class="dv">28</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="f3d95f2f-a971-4c1d-86e2-2488346b0b76" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>mpl.rcParams[<span class="st">'figure.dpi'</span>] <span class="op">=</span> <span class="dv">30</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="70449298-fd4b-4f0c-ac5e-673d8db82880" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>im3 <span class="op">=</span> x_imgs[<span class="dv">7</span>]</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>show_image(im3)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s create a simple <span class="math inline">\(3\times3\)</span> kernel (people in the computer vision world call it a kernel; essentially it’s just a tensor).</p>
+<p>NB: Actually, the values of kernels are not entered manually but are learned as parameters during training.</p>
+<div id="bd08d081-e57d-46f4-8451-6918b2d9f662" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>top_edge <span class="op">=</span> tensor([[<span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>], </span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>                  [<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>], </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                  [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>]]).<span class="bu">float</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="5419473f-3901-4667-9cdf-54d8eb17f201" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>show_image(top_edge, noframe<span class="op">=</span><span class="va">False</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-10-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This kernel will slide along all the <span class="math inline">\(3\times 3\)</span> windows in our images and compute the convolutions. If <span class="math inline">\(3\times 3\)</span>` window looks like this:</p>
+<p><span class="math display">\[\begin{matrix} a &amp; b &amp; c \\ d &amp; e &amp; f \\ g &amp; h &amp; i\end{matrix}\]</span></p>
+<p>then the result will be <span class="math inline">\(-a -b -c +g+h+i\)</span></p>
+<div id="4a63c2e4-5aa8-4ce6-9e90-e8aa327c09e0" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame(im3[:<span class="dv">13</span>,:<span class="dv">23</span>])</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df.style.<span class="bu">format</span>(precision<span class="op">=</span><span class="dv">2</span>).set_properties(<span class="op">**</span>{<span class="st">'font-size'</span>:<span class="st">'7pt'</span>}).background_gradient(<span class="st">'Greys'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div>
+<style type="text/css">
+#T_d47f6_row0_col0, #T_d47f6_row0_col1, #T_d47f6_row0_col2, #T_d47f6_row0_col3, #T_d47f6_row0_col4, #T_d47f6_row0_col5, #T_d47f6_row0_col6, #T_d47f6_row0_col7, #T_d47f6_row0_col8, #T_d47f6_row0_col9, #T_d47f6_row0_col10, #T_d47f6_row0_col11, #T_d47f6_row0_col12, #T_d47f6_row0_col13, #T_d47f6_row0_col14, #T_d47f6_row0_col15, #T_d47f6_row0_col16, #T_d47f6_row0_col17, #T_d47f6_row0_col18, #T_d47f6_row0_col19, #T_d47f6_row0_col20, #T_d47f6_row0_col21, #T_d47f6_row0_col22, #T_d47f6_row1_col0, #T_d47f6_row1_col1, #T_d47f6_row1_col2, #T_d47f6_row1_col3, #T_d47f6_row1_col4, #T_d47f6_row1_col5, #T_d47f6_row1_col6, #T_d47f6_row1_col7, #T_d47f6_row1_col8, #T_d47f6_row1_col9, #T_d47f6_row1_col10, #T_d47f6_row1_col11, #T_d47f6_row1_col12, #T_d47f6_row1_col13, #T_d47f6_row1_col14, #T_d47f6_row1_col15, #T_d47f6_row1_col16, #T_d47f6_row1_col17, #T_d47f6_row1_col18, #T_d47f6_row1_col19, #T_d47f6_row1_col20, #T_d47f6_row1_col21, #T_d47f6_row1_col22, #T_d47f6_row2_col0, #T_d47f6_row2_col1, #T_d47f6_row2_col2, #T_d47f6_row2_col3, #T_d47f6_row2_col4, #T_d47f6_row2_col5, #T_d47f6_row2_col6, #T_d47f6_row2_col7, #T_d47f6_row2_col8, #T_d47f6_row2_col9, #T_d47f6_row2_col10, #T_d47f6_row2_col11, #T_d47f6_row2_col12, #T_d47f6_row2_col13, #T_d47f6_row2_col14, #T_d47f6_row2_col15, #T_d47f6_row2_col16, #T_d47f6_row2_col17, #T_d47f6_row2_col18, #T_d47f6_row2_col19, #T_d47f6_row2_col20, #T_d47f6_row2_col21, #T_d47f6_row2_col22, #T_d47f6_row3_col0, #T_d47f6_row3_col1, #T_d47f6_row3_col2, #T_d47f6_row3_col3, #T_d47f6_row3_col4, #T_d47f6_row3_col5, #T_d47f6_row3_col6, #T_d47f6_row3_col7, #T_d47f6_row3_col8, #T_d47f6_row3_col9, #T_d47f6_row3_col10, #T_d47f6_row3_col11, #T_d47f6_row3_col12, #T_d47f6_row3_col13, #T_d47f6_row3_col14, #T_d47f6_row3_col15, #T_d47f6_row3_col16, #T_d47f6_row3_col17, #T_d47f6_row3_col18, #T_d47f6_row3_col19, #T_d47f6_row3_col20, #T_d47f6_row3_col21, #T_d47f6_row3_col22, #T_d47f6_row4_col0, #T_d47f6_row4_col1, #T_d47f6_row4_col2, #T_d47f6_row4_col3, #T_d47f6_row4_col4, #T_d47f6_row4_col5, #T_d47f6_row4_col6, #T_d47f6_row4_col7, #T_d47f6_row4_col8, #T_d47f6_row4_col9, #T_d47f6_row4_col10, #T_d47f6_row4_col11, #T_d47f6_row4_col12, #T_d47f6_row4_col13, #T_d47f6_row4_col14, #T_d47f6_row4_col15, #T_d47f6_row4_col16, #T_d47f6_row4_col17, #T_d47f6_row4_col18, #T_d47f6_row4_col19, #T_d47f6_row4_col20, #T_d47f6_row4_col21, #T_d47f6_row4_col22, #T_d47f6_row5_col0, #T_d47f6_row5_col1, #T_d47f6_row5_col2, #T_d47f6_row5_col3, #T_d47f6_row5_col4, #T_d47f6_row5_col5, #T_d47f6_row5_col6, #T_d47f6_row5_col7, #T_d47f6_row5_col8, #T_d47f6_row5_col9, #T_d47f6_row5_col10, #T_d47f6_row5_col22, #T_d47f6_row6_col0, #T_d47f6_row6_col1, #T_d47f6_row6_col2, #T_d47f6_row6_col3, #T_d47f6_row6_col4, #T_d47f6_row6_col5, #T_d47f6_row6_col6, #T_d47f6_row6_col7, #T_d47f6_row6_col8, #T_d47f6_row7_col0, #T_d47f6_row7_col1, #T_d47f6_row7_col2, #T_d47f6_row7_col3, #T_d47f6_row7_col4, #T_d47f6_row7_col5, #T_d47f6_row7_col6, #T_d47f6_row7_col7, #T_d47f6_row7_col8, #T_d47f6_row8_col0, #T_d47f6_row8_col1, #T_d47f6_row8_col2, #T_d47f6_row8_col3, #T_d47f6_row8_col4, #T_d47f6_row8_col5, #T_d47f6_row8_col6, #T_d47f6_row8_col7, #T_d47f6_row8_col8, #T_d47f6_row9_col0, #T_d47f6_row9_col1, #T_d47f6_row9_col2, #T_d47f6_row9_col3, #T_d47f6_row9_col4, #T_d47f6_row9_col5, #T_d47f6_row9_col6, #T_d47f6_row9_col7, #T_d47f6_row9_col8, #T_d47f6_row9_col13, #T_d47f6_row9_col14, #T_d47f6_row9_col15, #T_d47f6_row9_col16, #T_d47f6_row10_col0, #T_d47f6_row10_col1, #T_d47f6_row10_col2, #T_d47f6_row10_col3, #T_d47f6_row10_col4, #T_d47f6_row10_col5, #T_d47f6_row10_col6, #T_d47f6_row10_col7, #T_d47f6_row10_col8, #T_d47f6_row10_col9, #T_d47f6_row10_col10, #T_d47f6_row10_col11, #T_d47f6_row10_col12, #T_d47f6_row10_col13, #T_d47f6_row10_col14, #T_d47f6_row10_col15, #T_d47f6_row10_col16, #T_d47f6_row10_col22, #T_d47f6_row11_col0, #T_d47f6_row11_col1, #T_d47f6_row11_col2, #T_d47f6_row11_col3, #T_d47f6_row11_col4, #T_d47f6_row11_col5, #T_d47f6_row11_col6, #T_d47f6_row11_col7, #T_d47f6_row11_col8, #T_d47f6_row11_col9, #T_d47f6_row11_col10, #T_d47f6_row11_col11, #T_d47f6_row11_col12, #T_d47f6_row11_col13, #T_d47f6_row11_col14, #T_d47f6_row11_col15, #T_d47f6_row11_col22, #T_d47f6_row12_col0, #T_d47f6_row12_col1, #T_d47f6_row12_col2, #T_d47f6_row12_col3, #T_d47f6_row12_col4, #T_d47f6_row12_col5, #T_d47f6_row12_col6, #T_d47f6_row12_col7, #T_d47f6_row12_col8, #T_d47f6_row12_col9, #T_d47f6_row12_col10, #T_d47f6_row12_col11, #T_d47f6_row12_col12, #T_d47f6_row12_col13, #T_d47f6_row12_col22 {
+  font-size: 7pt;
+  background-color: #ffffff;
+  color: #000000;
+}
+#T_d47f6_row5_col11 {
+  font-size: 7pt;
+  background-color: #ececec;
+  color: #000000;
+}
+#T_d47f6_row5_col12 {
+  font-size: 7pt;
+  background-color: #e8e8e8;
+  color: #000000;
+}
+#T_d47f6_row5_col13 {
+  font-size: 7pt;
+  background-color: #b0b0b0;
+  color: #000000;
+}
+#T_d47f6_row5_col14, #T_d47f6_row5_col15, #T_d47f6_row5_col16, #T_d47f6_row5_col17, #T_d47f6_row5_col18, #T_d47f6_row5_col19, #T_d47f6_row6_col13, #T_d47f6_row6_col20, #T_d47f6_row7_col9, #T_d47f6_row7_col10, #T_d47f6_row7_col11, #T_d47f6_row7_col12, #T_d47f6_row7_col13, #T_d47f6_row7_col20, #T_d47f6_row7_col21, #T_d47f6_row7_col22, #T_d47f6_row8_col10, #T_d47f6_row8_col11, #T_d47f6_row8_col20, #T_d47f6_row8_col21, #T_d47f6_row8_col22, #T_d47f6_row9_col20, #T_d47f6_row10_col20, #T_d47f6_row11_col20 {
+  font-size: 7pt;
+  background-color: #000000;
+  color: #f1f1f1;
+}
+#T_d47f6_row5_col20 {
+  font-size: 7pt;
+  background-color: #626262;
+  color: #f1f1f1;
+}
+#T_d47f6_row5_col21 {
+  font-size: 7pt;
+  background-color: #fcfcfc;
+  color: #000000;
+}
+#T_d47f6_row6_col9 {
+  font-size: 7pt;
+  background-color: #dbdbdb;
+  color: #000000;
+}
+#T_d47f6_row6_col10 {
+  font-size: 7pt;
+  background-color: #878787;
+  color: #f1f1f1;
+}
+#T_d47f6_row6_col11 {
+  font-size: 7pt;
+  background-color: #212121;
+  color: #f1f1f1;
+}
+#T_d47f6_row6_col12 {
+  font-size: 7pt;
+  background-color: #1e1e1e;
+  color: #f1f1f1;
+}
+#T_d47f6_row6_col14, #T_d47f6_row7_col14 {
+  font-size: 7pt;
+  background-color: #020202;
+  color: #f1f1f1;
+}
+#T_d47f6_row6_col15, #T_d47f6_row6_col16, #T_d47f6_row6_col17, #T_d47f6_row6_col18, #T_d47f6_row6_col19, #T_d47f6_row7_col15, #T_d47f6_row7_col16, #T_d47f6_row7_col17, #T_d47f6_row7_col18, #T_d47f6_row7_col19, #T_d47f6_row8_col18, #T_d47f6_row8_col19, #T_d47f6_row9_col19, #T_d47f6_row10_col19, #T_d47f6_row11_col18, #T_d47f6_row11_col19, #T_d47f6_row12_col17, #T_d47f6_row12_col18, #T_d47f6_row12_col19 {
+  font-size: 7pt;
+  background-color: #010101;
+  color: #f1f1f1;
+}
+#T_d47f6_row6_col21 {
+  font-size: 7pt;
+  background-color: #727272;
+  color: #f1f1f1;
+}
+#T_d47f6_row6_col22 {
+  font-size: 7pt;
+  background-color: #dcdcdc;
+  color: #000000;
+}
+#T_d47f6_row8_col9 {
+  font-size: 7pt;
+  background-color: #777777;
+  color: #f1f1f1;
+}
+#T_d47f6_row8_col12 {
+  font-size: 7pt;
+  background-color: #1a1a1a;
+  color: #f1f1f1;
+}
+#T_d47f6_row8_col13 {
+  font-size: 7pt;
+  background-color: #8f8f8f;
+  color: #f1f1f1;
+}
+#T_d47f6_row8_col14, #T_d47f6_row8_col15, #T_d47f6_row8_col16 {
+  font-size: 7pt;
+  background-color: #909090;
+  color: #f1f1f1;
+}
+#T_d47f6_row8_col17, #T_d47f6_row11_col17 {
+  font-size: 7pt;
+  background-color: #525252;
+  color: #f1f1f1;
+}
+#T_d47f6_row9_col9 {
+  font-size: 7pt;
+  background-color: #fdfdfd;
+  color: #000000;
+}
+#T_d47f6_row9_col10, #T_d47f6_row9_col11, #T_d47f6_row9_col22 {
+  font-size: 7pt;
+  background-color: #f1f1f1;
+  color: #000000;
+}
+#T_d47f6_row9_col12 {
+  font-size: 7pt;
+  background-color: #f4f4f4;
+  color: #000000;
+}
+#T_d47f6_row9_col17, #T_d47f6_row11_col21 {
+  font-size: 7pt;
+  background-color: #f8f8f8;
+  color: #000000;
+}
+#T_d47f6_row9_col18 {
+  font-size: 7pt;
+  background-color: #1f1f1f;
+  color: #f1f1f1;
+}
+#T_d47f6_row9_col21 {
+  font-size: 7pt;
+  background-color: #646464;
+  color: #f1f1f1;
+}
+#T_d47f6_row10_col17 {
+  font-size: 7pt;
+  background-color: #c5c5c5;
+  color: #000000;
+}
+#T_d47f6_row10_col18 {
+  font-size: 7pt;
+  background-color: #0c0c0c;
+  color: #f1f1f1;
+}
+#T_d47f6_row10_col21 {
+  font-size: 7pt;
+  background-color: #828282;
+  color: #f1f1f1;
+}
+#T_d47f6_row11_col16 {
+  font-size: 7pt;
+  background-color: #c3c3c3;
+  color: #000000;
+}
+#T_d47f6_row12_col14 {
+  font-size: 7pt;
+  background-color: #c1c1c1;
+  color: #000000;
+}
+#T_d47f6_row12_col15 {
+  font-size: 7pt;
+  background-color: #323232;
+  color: #f1f1f1;
+}
+#T_d47f6_row12_col16 {
+  font-size: 7pt;
+  background-color: #070707;
+  color: #f1f1f1;
+}
+#T_d47f6_row12_col20 {
+  font-size: 7pt;
+  background-color: #3c3c3c;
+  color: #f1f1f1;
+}
+#T_d47f6_row12_col21 {
+  font-size: 7pt;
+  background-color: #fbfbfb;
+  color: #000000;
+}
+</style>
+
+<table id="T_d47f6" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_d47f6_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">0</th>
+<th id="T_d47f6_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">1</th>
+<th id="T_d47f6_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">2</th>
+<th id="T_d47f6_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">3</th>
+<th id="T_d47f6_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">4</th>
+<th id="T_d47f6_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">5</th>
+<th id="T_d47f6_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">6</th>
+<th id="T_d47f6_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">7</th>
+<th id="T_d47f6_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">8</th>
+<th id="T_d47f6_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">9</th>
+<th id="T_d47f6_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">10</th>
+<th id="T_d47f6_level0_col11" class="col_heading level0 col11" data-quarto-table-cell-role="th">11</th>
+<th id="T_d47f6_level0_col12" class="col_heading level0 col12" data-quarto-table-cell-role="th">12</th>
+<th id="T_d47f6_level0_col13" class="col_heading level0 col13" data-quarto-table-cell-role="th">13</th>
+<th id="T_d47f6_level0_col14" class="col_heading level0 col14" data-quarto-table-cell-role="th">14</th>
+<th id="T_d47f6_level0_col15" class="col_heading level0 col15" data-quarto-table-cell-role="th">15</th>
+<th id="T_d47f6_level0_col16" class="col_heading level0 col16" data-quarto-table-cell-role="th">16</th>
+<th id="T_d47f6_level0_col17" class="col_heading level0 col17" data-quarto-table-cell-role="th">17</th>
+<th id="T_d47f6_level0_col18" class="col_heading level0 col18" data-quarto-table-cell-role="th">18</th>
+<th id="T_d47f6_level0_col19" class="col_heading level0 col19" data-quarto-table-cell-role="th">19</th>
+<th id="T_d47f6_level0_col20" class="col_heading level0 col20" data-quarto-table-cell-role="th">20</th>
+<th id="T_d47f6_level0_col21" class="col_heading level0 col21" data-quarto-table-cell-role="th">21</th>
+<th id="T_d47f6_level0_col22" class="col_heading level0 col22" data-quarto-table-cell-role="th">22</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_d47f6_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_d47f6_row0_col0" class="data row0 col0">0.00</td>
+<td id="T_d47f6_row0_col1" class="data row0 col1">0.00</td>
+<td id="T_d47f6_row0_col2" class="data row0 col2">0.00</td>
+<td id="T_d47f6_row0_col3" class="data row0 col3">0.00</td>
+<td id="T_d47f6_row0_col4" class="data row0 col4">0.00</td>
+<td id="T_d47f6_row0_col5" class="data row0 col5">0.00</td>
+<td id="T_d47f6_row0_col6" class="data row0 col6">0.00</td>
+<td id="T_d47f6_row0_col7" class="data row0 col7">0.00</td>
+<td id="T_d47f6_row0_col8" class="data row0 col8">0.00</td>
+<td id="T_d47f6_row0_col9" class="data row0 col9">0.00</td>
+<td id="T_d47f6_row0_col10" class="data row0 col10">0.00</td>
+<td id="T_d47f6_row0_col11" class="data row0 col11">0.00</td>
+<td id="T_d47f6_row0_col12" class="data row0 col12">0.00</td>
+<td id="T_d47f6_row0_col13" class="data row0 col13">0.00</td>
+<td id="T_d47f6_row0_col14" class="data row0 col14">0.00</td>
+<td id="T_d47f6_row0_col15" class="data row0 col15">0.00</td>
+<td id="T_d47f6_row0_col16" class="data row0 col16">0.00</td>
+<td id="T_d47f6_row0_col17" class="data row0 col17">0.00</td>
+<td id="T_d47f6_row0_col18" class="data row0 col18">0.00</td>
+<td id="T_d47f6_row0_col19" class="data row0 col19">0.00</td>
+<td id="T_d47f6_row0_col20" class="data row0 col20">0.00</td>
+<td id="T_d47f6_row0_col21" class="data row0 col21">0.00</td>
+<td id="T_d47f6_row0_col22" class="data row0 col22">0.00</td>
+</tr>
+<tr class="even">
+<td id="T_d47f6_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_d47f6_row1_col0" class="data row1 col0">0.00</td>
+<td id="T_d47f6_row1_col1" class="data row1 col1">0.00</td>
+<td id="T_d47f6_row1_col2" class="data row1 col2">0.00</td>
+<td id="T_d47f6_row1_col3" class="data row1 col3">0.00</td>
+<td id="T_d47f6_row1_col4" class="data row1 col4">0.00</td>
+<td id="T_d47f6_row1_col5" class="data row1 col5">0.00</td>
+<td id="T_d47f6_row1_col6" class="data row1 col6">0.00</td>
+<td id="T_d47f6_row1_col7" class="data row1 col7">0.00</td>
+<td id="T_d47f6_row1_col8" class="data row1 col8">0.00</td>
+<td id="T_d47f6_row1_col9" class="data row1 col9">0.00</td>
+<td id="T_d47f6_row1_col10" class="data row1 col10">0.00</td>
+<td id="T_d47f6_row1_col11" class="data row1 col11">0.00</td>
+<td id="T_d47f6_row1_col12" class="data row1 col12">0.00</td>
+<td id="T_d47f6_row1_col13" class="data row1 col13">0.00</td>
+<td id="T_d47f6_row1_col14" class="data row1 col14">0.00</td>
+<td id="T_d47f6_row1_col15" class="data row1 col15">0.00</td>
+<td id="T_d47f6_row1_col16" class="data row1 col16">0.00</td>
+<td id="T_d47f6_row1_col17" class="data row1 col17">0.00</td>
+<td id="T_d47f6_row1_col18" class="data row1 col18">0.00</td>
+<td id="T_d47f6_row1_col19" class="data row1 col19">0.00</td>
+<td id="T_d47f6_row1_col20" class="data row1 col20">0.00</td>
+<td id="T_d47f6_row1_col21" class="data row1 col21">0.00</td>
+<td id="T_d47f6_row1_col22" class="data row1 col22">0.00</td>
+</tr>
+<tr class="odd">
+<td id="T_d47f6_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_d47f6_row2_col0" class="data row2 col0">0.00</td>
+<td id="T_d47f6_row2_col1" class="data row2 col1">0.00</td>
+<td id="T_d47f6_row2_col2" class="data row2 col2">0.00</td>
+<td id="T_d47f6_row2_col3" class="data row2 col3">0.00</td>
+<td id="T_d47f6_row2_col4" class="data row2 col4">0.00</td>
+<td id="T_d47f6_row2_col5" class="data row2 col5">0.00</td>
+<td id="T_d47f6_row2_col6" class="data row2 col6">0.00</td>
+<td id="T_d47f6_row2_col7" class="data row2 col7">0.00</td>
+<td id="T_d47f6_row2_col8" class="data row2 col8">0.00</td>
+<td id="T_d47f6_row2_col9" class="data row2 col9">0.00</td>
+<td id="T_d47f6_row2_col10" class="data row2 col10">0.00</td>
+<td id="T_d47f6_row2_col11" class="data row2 col11">0.00</td>
+<td id="T_d47f6_row2_col12" class="data row2 col12">0.00</td>
+<td id="T_d47f6_row2_col13" class="data row2 col13">0.00</td>
+<td id="T_d47f6_row2_col14" class="data row2 col14">0.00</td>
+<td id="T_d47f6_row2_col15" class="data row2 col15">0.00</td>
+<td id="T_d47f6_row2_col16" class="data row2 col16">0.00</td>
+<td id="T_d47f6_row2_col17" class="data row2 col17">0.00</td>
+<td id="T_d47f6_row2_col18" class="data row2 col18">0.00</td>
+<td id="T_d47f6_row2_col19" class="data row2 col19">0.00</td>
+<td id="T_d47f6_row2_col20" class="data row2 col20">0.00</td>
+<td id="T_d47f6_row2_col21" class="data row2 col21">0.00</td>
+<td id="T_d47f6_row2_col22" class="data row2 col22">0.00</td>
+</tr>
+<tr class="even">
+<td id="T_d47f6_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_d47f6_row3_col0" class="data row3 col0">0.00</td>
+<td id="T_d47f6_row3_col1" class="data row3 col1">0.00</td>
+<td id="T_d47f6_row3_col2" class="data row3 col2">0.00</td>
+<td id="T_d47f6_row3_col3" class="data row3 col3">0.00</td>
+<td id="T_d47f6_row3_col4" class="data row3 col4">0.00</td>
+<td id="T_d47f6_row3_col5" class="data row3 col5">0.00</td>
+<td id="T_d47f6_row3_col6" class="data row3 col6">0.00</td>
+<td id="T_d47f6_row3_col7" class="data row3 col7">0.00</td>
+<td id="T_d47f6_row3_col8" class="data row3 col8">0.00</td>
+<td id="T_d47f6_row3_col9" class="data row3 col9">0.00</td>
+<td id="T_d47f6_row3_col10" class="data row3 col10">0.00</td>
+<td id="T_d47f6_row3_col11" class="data row3 col11">0.00</td>
+<td id="T_d47f6_row3_col12" class="data row3 col12">0.00</td>
+<td id="T_d47f6_row3_col13" class="data row3 col13">0.00</td>
+<td id="T_d47f6_row3_col14" class="data row3 col14">0.00</td>
+<td id="T_d47f6_row3_col15" class="data row3 col15">0.00</td>
+<td id="T_d47f6_row3_col16" class="data row3 col16">0.00</td>
+<td id="T_d47f6_row3_col17" class="data row3 col17">0.00</td>
+<td id="T_d47f6_row3_col18" class="data row3 col18">0.00</td>
+<td id="T_d47f6_row3_col19" class="data row3 col19">0.00</td>
+<td id="T_d47f6_row3_col20" class="data row3 col20">0.00</td>
+<td id="T_d47f6_row3_col21" class="data row3 col21">0.00</td>
+<td id="T_d47f6_row3_col22" class="data row3 col22">0.00</td>
+</tr>
+<tr class="odd">
+<td id="T_d47f6_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_d47f6_row4_col0" class="data row4 col0">0.00</td>
+<td id="T_d47f6_row4_col1" class="data row4 col1">0.00</td>
+<td id="T_d47f6_row4_col2" class="data row4 col2">0.00</td>
+<td id="T_d47f6_row4_col3" class="data row4 col3">0.00</td>
+<td id="T_d47f6_row4_col4" class="data row4 col4">0.00</td>
+<td id="T_d47f6_row4_col5" class="data row4 col5">0.00</td>
+<td id="T_d47f6_row4_col6" class="data row4 col6">0.00</td>
+<td id="T_d47f6_row4_col7" class="data row4 col7">0.00</td>
+<td id="T_d47f6_row4_col8" class="data row4 col8">0.00</td>
+<td id="T_d47f6_row4_col9" class="data row4 col9">0.00</td>
+<td id="T_d47f6_row4_col10" class="data row4 col10">0.00</td>
+<td id="T_d47f6_row4_col11" class="data row4 col11">0.00</td>
+<td id="T_d47f6_row4_col12" class="data row4 col12">0.00</td>
+<td id="T_d47f6_row4_col13" class="data row4 col13">0.00</td>
+<td id="T_d47f6_row4_col14" class="data row4 col14">0.00</td>
+<td id="T_d47f6_row4_col15" class="data row4 col15">0.00</td>
+<td id="T_d47f6_row4_col16" class="data row4 col16">0.00</td>
+<td id="T_d47f6_row4_col17" class="data row4 col17">0.00</td>
+<td id="T_d47f6_row4_col18" class="data row4 col18">0.00</td>
+<td id="T_d47f6_row4_col19" class="data row4 col19">0.00</td>
+<td id="T_d47f6_row4_col20" class="data row4 col20">0.00</td>
+<td id="T_d47f6_row4_col21" class="data row4 col21">0.00</td>
+<td id="T_d47f6_row4_col22" class="data row4 col22">0.00</td>
+</tr>
+<tr class="even">
+<td id="T_d47f6_level0_row5" class="row_heading level0 row5" data-quarto-table-cell-role="th">5</td>
+<td id="T_d47f6_row5_col0" class="data row5 col0">0.00</td>
+<td id="T_d47f6_row5_col1" class="data row5 col1">0.00</td>
+<td id="T_d47f6_row5_col2" class="data row5 col2">0.00</td>
+<td id="T_d47f6_row5_col3" class="data row5 col3">0.00</td>
+<td id="T_d47f6_row5_col4" class="data row5 col4">0.00</td>
+<td id="T_d47f6_row5_col5" class="data row5 col5">0.00</td>
+<td id="T_d47f6_row5_col6" class="data row5 col6">0.00</td>
+<td id="T_d47f6_row5_col7" class="data row5 col7">0.00</td>
+<td id="T_d47f6_row5_col8" class="data row5 col8">0.00</td>
+<td id="T_d47f6_row5_col9" class="data row5 col9">0.00</td>
+<td id="T_d47f6_row5_col10" class="data row5 col10">0.00</td>
+<td id="T_d47f6_row5_col11" class="data row5 col11">0.15</td>
+<td id="T_d47f6_row5_col12" class="data row5 col12">0.17</td>
+<td id="T_d47f6_row5_col13" class="data row5 col13">0.41</td>
+<td id="T_d47f6_row5_col14" class="data row5 col14">1.00</td>
+<td id="T_d47f6_row5_col15" class="data row5 col15">0.99</td>
+<td id="T_d47f6_row5_col16" class="data row5 col16">0.99</td>
+<td id="T_d47f6_row5_col17" class="data row5 col17">0.99</td>
+<td id="T_d47f6_row5_col18" class="data row5 col18">0.99</td>
+<td id="T_d47f6_row5_col19" class="data row5 col19">0.99</td>
+<td id="T_d47f6_row5_col20" class="data row5 col20">0.68</td>
+<td id="T_d47f6_row5_col21" class="data row5 col21">0.02</td>
+<td id="T_d47f6_row5_col22" class="data row5 col22">0.00</td>
+</tr>
+<tr class="odd">
+<td id="T_d47f6_level0_row6" class="row_heading level0 row6" data-quarto-table-cell-role="th">6</td>
+<td id="T_d47f6_row6_col0" class="data row6 col0">0.00</td>
+<td id="T_d47f6_row6_col1" class="data row6 col1">0.00</td>
+<td id="T_d47f6_row6_col2" class="data row6 col2">0.00</td>
+<td id="T_d47f6_row6_col3" class="data row6 col3">0.00</td>
+<td id="T_d47f6_row6_col4" class="data row6 col4">0.00</td>
+<td id="T_d47f6_row6_col5" class="data row6 col5">0.00</td>
+<td id="T_d47f6_row6_col6" class="data row6 col6">0.00</td>
+<td id="T_d47f6_row6_col7" class="data row6 col7">0.00</td>
+<td id="T_d47f6_row6_col8" class="data row6 col8">0.00</td>
+<td id="T_d47f6_row6_col9" class="data row6 col9">0.17</td>
+<td id="T_d47f6_row6_col10" class="data row6 col10">0.54</td>
+<td id="T_d47f6_row6_col11" class="data row6 col11">0.88</td>
+<td id="T_d47f6_row6_col12" class="data row6 col12">0.88</td>
+<td id="T_d47f6_row6_col13" class="data row6 col13">0.98</td>
+<td id="T_d47f6_row6_col14" class="data row6 col14">0.99</td>
+<td id="T_d47f6_row6_col15" class="data row6 col15">0.98</td>
+<td id="T_d47f6_row6_col16" class="data row6 col16">0.98</td>
+<td id="T_d47f6_row6_col17" class="data row6 col17">0.98</td>
+<td id="T_d47f6_row6_col18" class="data row6 col18">0.98</td>
+<td id="T_d47f6_row6_col19" class="data row6 col19">0.98</td>
+<td id="T_d47f6_row6_col20" class="data row6 col20">0.98</td>
+<td id="T_d47f6_row6_col21" class="data row6 col21">0.62</td>
+<td id="T_d47f6_row6_col22" class="data row6 col22">0.05</td>
+</tr>
+<tr class="even">
+<td id="T_d47f6_level0_row7" class="row_heading level0 row7" data-quarto-table-cell-role="th">7</td>
+<td id="T_d47f6_row7_col0" class="data row7 col0">0.00</td>
+<td id="T_d47f6_row7_col1" class="data row7 col1">0.00</td>
+<td id="T_d47f6_row7_col2" class="data row7 col2">0.00</td>
+<td id="T_d47f6_row7_col3" class="data row7 col3">0.00</td>
+<td id="T_d47f6_row7_col4" class="data row7 col4">0.00</td>
+<td id="T_d47f6_row7_col5" class="data row7 col5">0.00</td>
+<td id="T_d47f6_row7_col6" class="data row7 col6">0.00</td>
+<td id="T_d47f6_row7_col7" class="data row7 col7">0.00</td>
+<td id="T_d47f6_row7_col8" class="data row7 col8">0.00</td>
+<td id="T_d47f6_row7_col9" class="data row7 col9">0.70</td>
+<td id="T_d47f6_row7_col10" class="data row7 col10">0.98</td>
+<td id="T_d47f6_row7_col11" class="data row7 col11">0.98</td>
+<td id="T_d47f6_row7_col12" class="data row7 col12">0.98</td>
+<td id="T_d47f6_row7_col13" class="data row7 col13">0.98</td>
+<td id="T_d47f6_row7_col14" class="data row7 col14">0.99</td>
+<td id="T_d47f6_row7_col15" class="data row7 col15">0.98</td>
+<td id="T_d47f6_row7_col16" class="data row7 col16">0.98</td>
+<td id="T_d47f6_row7_col17" class="data row7 col17">0.98</td>
+<td id="T_d47f6_row7_col18" class="data row7 col18">0.98</td>
+<td id="T_d47f6_row7_col19" class="data row7 col19">0.98</td>
+<td id="T_d47f6_row7_col20" class="data row7 col20">0.98</td>
+<td id="T_d47f6_row7_col21" class="data row7 col21">0.98</td>
+<td id="T_d47f6_row7_col22" class="data row7 col22">0.23</td>
+</tr>
+<tr class="odd">
+<td id="T_d47f6_level0_row8" class="row_heading level0 row8" data-quarto-table-cell-role="th">8</td>
+<td id="T_d47f6_row8_col0" class="data row8 col0">0.00</td>
+<td id="T_d47f6_row8_col1" class="data row8 col1">0.00</td>
+<td id="T_d47f6_row8_col2" class="data row8 col2">0.00</td>
+<td id="T_d47f6_row8_col3" class="data row8 col3">0.00</td>
+<td id="T_d47f6_row8_col4" class="data row8 col4">0.00</td>
+<td id="T_d47f6_row8_col5" class="data row8 col5">0.00</td>
+<td id="T_d47f6_row8_col6" class="data row8 col6">0.00</td>
+<td id="T_d47f6_row8_col7" class="data row8 col7">0.00</td>
+<td id="T_d47f6_row8_col8" class="data row8 col8">0.00</td>
+<td id="T_d47f6_row8_col9" class="data row8 col9">0.43</td>
+<td id="T_d47f6_row8_col10" class="data row8 col10">0.98</td>
+<td id="T_d47f6_row8_col11" class="data row8 col11">0.98</td>
+<td id="T_d47f6_row8_col12" class="data row8 col12">0.90</td>
+<td id="T_d47f6_row8_col13" class="data row8 col13">0.52</td>
+<td id="T_d47f6_row8_col14" class="data row8 col14">0.52</td>
+<td id="T_d47f6_row8_col15" class="data row8 col15">0.52</td>
+<td id="T_d47f6_row8_col16" class="data row8 col16">0.52</td>
+<td id="T_d47f6_row8_col17" class="data row8 col17">0.74</td>
+<td id="T_d47f6_row8_col18" class="data row8 col18">0.98</td>
+<td id="T_d47f6_row8_col19" class="data row8 col19">0.98</td>
+<td id="T_d47f6_row8_col20" class="data row8 col20">0.98</td>
+<td id="T_d47f6_row8_col21" class="data row8 col21">0.98</td>
+<td id="T_d47f6_row8_col22" class="data row8 col22">0.23</td>
+</tr>
+<tr class="even">
+<td id="T_d47f6_level0_row9" class="row_heading level0 row9" data-quarto-table-cell-role="th">9</td>
+<td id="T_d47f6_row9_col0" class="data row9 col0">0.00</td>
+<td id="T_d47f6_row9_col1" class="data row9 col1">0.00</td>
+<td id="T_d47f6_row9_col2" class="data row9 col2">0.00</td>
+<td id="T_d47f6_row9_col3" class="data row9 col3">0.00</td>
+<td id="T_d47f6_row9_col4" class="data row9 col4">0.00</td>
+<td id="T_d47f6_row9_col5" class="data row9 col5">0.00</td>
+<td id="T_d47f6_row9_col6" class="data row9 col6">0.00</td>
+<td id="T_d47f6_row9_col7" class="data row9 col7">0.00</td>
+<td id="T_d47f6_row9_col8" class="data row9 col8">0.00</td>
+<td id="T_d47f6_row9_col9" class="data row9 col9">0.02</td>
+<td id="T_d47f6_row9_col10" class="data row9 col10">0.11</td>
+<td id="T_d47f6_row9_col11" class="data row9 col11">0.11</td>
+<td id="T_d47f6_row9_col12" class="data row9 col12">0.09</td>
+<td id="T_d47f6_row9_col13" class="data row9 col13">0.00</td>
+<td id="T_d47f6_row9_col14" class="data row9 col14">0.00</td>
+<td id="T_d47f6_row9_col15" class="data row9 col15">0.00</td>
+<td id="T_d47f6_row9_col16" class="data row9 col16">0.00</td>
+<td id="T_d47f6_row9_col17" class="data row9 col17">0.05</td>
+<td id="T_d47f6_row9_col18" class="data row9 col18">0.88</td>
+<td id="T_d47f6_row9_col19" class="data row9 col19">0.98</td>
+<td id="T_d47f6_row9_col20" class="data row9 col20">0.98</td>
+<td id="T_d47f6_row9_col21" class="data row9 col21">0.67</td>
+<td id="T_d47f6_row9_col22" class="data row9 col22">0.03</td>
+</tr>
+<tr class="odd">
+<td id="T_d47f6_level0_row10" class="row_heading level0 row10" data-quarto-table-cell-role="th">10</td>
+<td id="T_d47f6_row10_col0" class="data row10 col0">0.00</td>
+<td id="T_d47f6_row10_col1" class="data row10 col1">0.00</td>
+<td id="T_d47f6_row10_col2" class="data row10 col2">0.00</td>
+<td id="T_d47f6_row10_col3" class="data row10 col3">0.00</td>
+<td id="T_d47f6_row10_col4" class="data row10 col4">0.00</td>
+<td id="T_d47f6_row10_col5" class="data row10 col5">0.00</td>
+<td id="T_d47f6_row10_col6" class="data row10 col6">0.00</td>
+<td id="T_d47f6_row10_col7" class="data row10 col7">0.00</td>
+<td id="T_d47f6_row10_col8" class="data row10 col8">0.00</td>
+<td id="T_d47f6_row10_col9" class="data row10 col9">0.00</td>
+<td id="T_d47f6_row10_col10" class="data row10 col10">0.00</td>
+<td id="T_d47f6_row10_col11" class="data row10 col11">0.00</td>
+<td id="T_d47f6_row10_col12" class="data row10 col12">0.00</td>
+<td id="T_d47f6_row10_col13" class="data row10 col13">0.00</td>
+<td id="T_d47f6_row10_col14" class="data row10 col14">0.00</td>
+<td id="T_d47f6_row10_col15" class="data row10 col15">0.00</td>
+<td id="T_d47f6_row10_col16" class="data row10 col16">0.00</td>
+<td id="T_d47f6_row10_col17" class="data row10 col17">0.33</td>
+<td id="T_d47f6_row10_col18" class="data row10 col18">0.95</td>
+<td id="T_d47f6_row10_col19" class="data row10 col19">0.98</td>
+<td id="T_d47f6_row10_col20" class="data row10 col20">0.98</td>
+<td id="T_d47f6_row10_col21" class="data row10 col21">0.56</td>
+<td id="T_d47f6_row10_col22" class="data row10 col22">0.00</td>
+</tr>
+<tr class="even">
+<td id="T_d47f6_level0_row11" class="row_heading level0 row11" data-quarto-table-cell-role="th">11</td>
+<td id="T_d47f6_row11_col0" class="data row11 col0">0.00</td>
+<td id="T_d47f6_row11_col1" class="data row11 col1">0.00</td>
+<td id="T_d47f6_row11_col2" class="data row11 col2">0.00</td>
+<td id="T_d47f6_row11_col3" class="data row11 col3">0.00</td>
+<td id="T_d47f6_row11_col4" class="data row11 col4">0.00</td>
+<td id="T_d47f6_row11_col5" class="data row11 col5">0.00</td>
+<td id="T_d47f6_row11_col6" class="data row11 col6">0.00</td>
+<td id="T_d47f6_row11_col7" class="data row11 col7">0.00</td>
+<td id="T_d47f6_row11_col8" class="data row11 col8">0.00</td>
+<td id="T_d47f6_row11_col9" class="data row11 col9">0.00</td>
+<td id="T_d47f6_row11_col10" class="data row11 col10">0.00</td>
+<td id="T_d47f6_row11_col11" class="data row11 col11">0.00</td>
+<td id="T_d47f6_row11_col12" class="data row11 col12">0.00</td>
+<td id="T_d47f6_row11_col13" class="data row11 col13">0.00</td>
+<td id="T_d47f6_row11_col14" class="data row11 col14">0.00</td>
+<td id="T_d47f6_row11_col15" class="data row11 col15">0.00</td>
+<td id="T_d47f6_row11_col16" class="data row11 col16">0.34</td>
+<td id="T_d47f6_row11_col17" class="data row11 col17">0.74</td>
+<td id="T_d47f6_row11_col18" class="data row11 col18">0.98</td>
+<td id="T_d47f6_row11_col19" class="data row11 col19">0.98</td>
+<td id="T_d47f6_row11_col20" class="data row11 col20">0.98</td>
+<td id="T_d47f6_row11_col21" class="data row11 col21">0.05</td>
+<td id="T_d47f6_row11_col22" class="data row11 col22">0.00</td>
+</tr>
+<tr class="odd">
+<td id="T_d47f6_level0_row12" class="row_heading level0 row12" data-quarto-table-cell-role="th">12</td>
+<td id="T_d47f6_row12_col0" class="data row12 col0">0.00</td>
+<td id="T_d47f6_row12_col1" class="data row12 col1">0.00</td>
+<td id="T_d47f6_row12_col2" class="data row12 col2">0.00</td>
+<td id="T_d47f6_row12_col3" class="data row12 col3">0.00</td>
+<td id="T_d47f6_row12_col4" class="data row12 col4">0.00</td>
+<td id="T_d47f6_row12_col5" class="data row12 col5">0.00</td>
+<td id="T_d47f6_row12_col6" class="data row12 col6">0.00</td>
+<td id="T_d47f6_row12_col7" class="data row12 col7">0.00</td>
+<td id="T_d47f6_row12_col8" class="data row12 col8">0.00</td>
+<td id="T_d47f6_row12_col9" class="data row12 col9">0.00</td>
+<td id="T_d47f6_row12_col10" class="data row12 col10">0.00</td>
+<td id="T_d47f6_row12_col11" class="data row12 col11">0.00</td>
+<td id="T_d47f6_row12_col12" class="data row12 col12">0.00</td>
+<td id="T_d47f6_row12_col13" class="data row12 col13">0.00</td>
+<td id="T_d47f6_row12_col14" class="data row12 col14">0.36</td>
+<td id="T_d47f6_row12_col15" class="data row12 col15">0.83</td>
+<td id="T_d47f6_row12_col16" class="data row12 col16">0.96</td>
+<td id="T_d47f6_row12_col17" class="data row12 col17">0.98</td>
+<td id="T_d47f6_row12_col18" class="data row12 col18">0.98</td>
+<td id="T_d47f6_row12_col19" class="data row12 col19">0.98</td>
+<td id="T_d47f6_row12_col20" class="data row12 col20">0.80</td>
+<td id="T_d47f6_row12_col21" class="data row12 col21">0.04</td>
+<td id="T_d47f6_row12_col22" class="data row12 col22">0.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>If we compute the convolution over the <span class="math inline">\(3\times 3\)</span> window along rows <span class="math inline">\(3\)</span> to <span class="math inline">\(5\)</span> and columns <span class="math inline">\(14\)</span> to <span class="math inline">\(16\)</span> (the top edge of the <span class="math inline">\(3\)</span>), the result will be:</p>
+<div id="c5488a6a-2c8c-4ee8-8d74-60bf1b120021" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>(im3[<span class="dv">3</span>:<span class="dv">6</span>,<span class="dv">14</span>:<span class="dv">17</span>] <span class="op">*</span> top_edge).<span class="bu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>tensor(2.9727)</code></pre>
+</div>
+</div>
+<p>Similarly, doing this in the window made by rows <span class="math inline">\(7, 8, 9\)</span> and columns <span class="math inline">\(14, 15, 16\)</span> (the bottom edge of <span class="math inline">\(3\)</span>), we’ll get:</p>
+<div id="2d3f629c-cc1e-45a9-b8b8-8af928a837b4" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>(im3[<span class="dv">7</span>:<span class="dv">10</span>, <span class="dv">14</span>:<span class="dv">17</span>] <span class="op">*</span> top_edge).<span class="bu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>tensor(-2.9570)</code></pre>
+</div>
+</div>
+<p>The positive pixels represent the “lighter” pixels and negative values represent the “darker” pixels in relative terms. Our kernel should be able to highlight the top edges of <span class="math inline">\(3\)</span> by making the top edges lighter and the bottom edges darker.</p>
+<p>Note that to compute the convolutions, we are simply doing numpy’s element-wise multiplication followed by a sum.</p>
+<p>Let’s create a function which will compute the the convolutions over any <span class="math inline">\(3 \times 3\)</span> window with any <span class="math inline">\(3 \times 3\)</span> kernel.</p>
+<div id="e5505a78-0ac6-456e-927d-f6d0f806a68f" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">#row and col define the center coordinate of a 3x3 window</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> apply_kernel(row, col, kernel): <span class="cf">return</span> (im3[row<span class="op">-</span><span class="dv">1</span>:row<span class="op">+</span><span class="dv">2</span>, col<span class="op">-</span><span class="dv">1</span>:col<span class="op">+</span><span class="dv">2</span>] <span class="op">*</span> kernel).<span class="bu">sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="915b961b-327e-4221-aa9d-20425e1851e0" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>apply_kernel(<span class="dv">4</span>, <span class="dv">15</span>, top_edge)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<pre><code>tensor(2.9727)</code></pre>
+</div>
+</div>
+<p>Next, we want to slide this kernel over the entire image. To do this, we’ll use list comprehension inside a list comprehension to create coordinates over which we want to move.</p>
+<div id="3d482c93-c7f3-48fd-9835-a32bc34b940f" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">27</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>top_edge3 <span class="op">=</span> tensor([[apply_kernel(i, j, top_edge) <span class="cf">for</span> j <span class="kw">in</span> rng] <span class="cf">for</span> i <span class="kw">in</span> rng])</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>show_image(top_edge3)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-16-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Our simple little <span class="math inline">\(3 \times 3\)</span> kernel has managed to highlight the top edges of the digit <span class="math inline">\(3\)</span> !</p>
+<p>Here’s a subtle thing that we need to notice.</p>
+<div id="f76e5c48-1d98-420f-a08c-3d059954dff4" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>top_edge3.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>torch.Size([26, 26])</code></pre>
+</div>
+</div>
+<p>The shape of the output image is <span class="math inline">\(26\times 26\)</span> while the input image had <span class="math inline">\(28\times 28\)</span> dimensions. It is easy to see why the output dimensions change if we visualize the kernel sliding over all the <span class="math inline">\(3\times 3\)</span> windows in our input image. In general, if a kernel of dimension <span class="math inline">\(f\times f\)</span> convolve over an image of dimension <span class="math inline">\(N\times N\)</span>, the output will have dimensions <span class="math inline">\((N-f+1)\times (N-f+1)\)</span>.</p>
+<p>Let’s repeat the same exercise using another kernel which should be able to highlight the left edges.</p>
+<div id="11b49ad1-24ff-4ced-ad3f-b161491fd7e2" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>left_edge <span class="op">=</span> tensor([[<span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>],</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>                    [<span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>],</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                    [<span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>]]).<span class="bu">float</span>()</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>show_image(left_edge, noframe<span class="op">=</span><span class="va">False</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-18-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="06954540-bdc4-451c-8859-a944c73c9bcb" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>left_edge3 <span class="op">=</span> tensor([[apply_kernel(i, j, left_edge) <span class="cf">for</span> j <span class="kw">in</span> rng] <span class="cf">for</span> i <span class="kw">in</span> rng])</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>show_image(left_edge3)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-19-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>And it works as expected.</p>
+</section>
+<section id="convolutions-in-pytorch" class="level1">
+<h1>Convolutions in PyTorch</h1>
+<p>The convolutions that we implemented in python above are quite slow.</p>
+<div id="7124a4cd-e37b-45b8-8f76-9e8063794ddf" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>timeit <span class="op">-</span>n <span class="dv">1</span> tensor([[apply_kernel(i, j, left_edge) <span class="cf">for</span> j <span class="kw">in</span> rng] <span class="cf">for</span> i <span class="kw">in</span> rng])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>9.7 ms ± 5.35 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+</div>
+</div>
+<p>PyTorch has an <code>Conv2d</code> class that is optimized for convolutions and offers added features and benefits.</p>
+<div id="a8a5a7f3-a071-43fd-96e3-d97c36057ad7" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>inp <span class="op">=</span> im3[<span class="va">None</span>,<span class="va">None</span>,:,:].<span class="bu">float</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><code>conv2d</code> expects the input image to be a rank-four tensor where the dimensions correspond to <code>batch, channel, height, width</code> respectively. Since we are only considering a single image, our batch size (first dimension) is one, and we are working with black-and-white images, our images have a single channel. Colored images have three channels: red, green, and blue.</p>
+<div id="bb1c1b5b-488c-4ded-9e0e-b6aeb60cf621" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>timeit <span class="op">-</span>n <span class="dv">100</span> F.conv2d(inp, left_edge[<span class="va">None</span>,<span class="va">None</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>The slowest run took 479.87 times longer than the fastest. This could mean that an intermediate result is being cached.
+887 µs ± 2.1 ms per loop (mean ± std. dev. of 7 runs, 100 loops each)</code></pre>
+</div>
+</div>
+</section>
+<section id="convolutions-over-a-batch-of-images" class="level1">
+<h1>Convolutions over a batch of images</h1>
+<p>When training our network, we pass the input images to the models as batches. <code>conv2d</code> allows us to conveniently implement the convolutions using multiple kernels simultaneously over a batch of images.</p>
+<p>Let’s make two more kernels to detect diagnals in the image.</p>
+<div id="cfbef8cf-90db-4f18-ad26-e6291012af4f" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>diag1_edge <span class="op">=</span> tensor([[ <span class="dv">0</span>,<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>],</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>                     [<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>],</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                     [ <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>]]).<span class="bu">float</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="e7e853ce-c06f-4bc8-a7a6-284aa432bf0a" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>show_image(diag1_edge, noframe<span class="op">=</span><span class="va">False</span>)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-24-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="1058b9a7-f410-4a18-9a99-ba837be8fc0c" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>diag2_edge <span class="op">=</span> tensor([[ <span class="dv">1</span>,<span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>],</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>                     [ <span class="dv">0</span>, <span class="dv">1</span>,<span class="op">-</span><span class="dv">1</span>],</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>                     [ <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>]]).<span class="bu">float</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="6584cf7c-b33c-419c-a266-1cb0177feb94" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>show_image(diag2_edge)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-26-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Let’s create a batch of 16 images.</p>
+<div id="3eca44be-958f-481f-8ce0-997d19c3b4ee" class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>xb <span class="op">=</span> x_imgs[:<span class="dv">16</span>][:, <span class="va">None</span>]</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>xb.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="26">
+<pre><code>torch.Size([16, 1, 28, 28])</code></pre>
+</div>
+</div>
+<p>And stack all our kernels together</p>
+<div id="497e2e27-b5a8-43c3-acd8-f906fbde2224" class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>edge_kernels <span class="op">=</span> torch.stack([left_edge, top_edge, diag1_edge, diag2_edge])[:, <span class="va">None</span>]</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>edge_kernels.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="27">
+<pre><code>torch.Size([4, 1, 3, 3])</code></pre>
+</div>
+</div>
+<p>Now, we pass the batch and kernel to <code>conv2d</code></p>
+<div id="99a486a6-5b48-4f8a-a896-875684b5c46d" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>batch_features <span class="op">=</span> F.conv2d(xb, edge_kernels)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>batch_features.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="28">
+<pre><code>torch.Size([16, 4, 26, 26])</code></pre>
+</div>
+</div>
+<p>The output indicates that we have <span class="math inline">\(16\)</span> images in the batch, <span class="math inline">\(4\)</span> filters, and each image is of dimension <span class="math inline">\(26\times26\)</span>.</p>
+<p>Let’s see what the kernels detect when applied on a particular image</p>
+<div id="6e4169fd-cde5-43a1-adc4-3aea0a4be968" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> xb[<span class="dv">1</span>, <span class="dv">0</span>]</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>show_image(x)<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-30-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="e046cbab-cc24-4857-bd1c-e98ef63c8aaf" class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>show_images([batch_features[<span class="dv">1</span>,i] <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">4</span>)])<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ConvNets_files/figure-html/cell-31-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="strides-and-padding" class="level1">
+<h1>Strides and Padding</h1>
+<p>Using the convolution operation, we lose some pixels from our image, effectively losing data, which is never good. Using appropriate padding, we can ensure that the output activation map is the same size as the input image. <img src="ConvNets_files/figure-html/9aacb202-2811-4163-9ac8-f3ec35642981-3-7ff7b377-afae-416d-a20d-dc70b8443b38.png" class="img-fluid" alt="padding"> &gt;Figure 4: Padding</p>
+<p>Zero padding is a common approach where the input outside the valid range is <span class="math inline">\(0\)</span>. If we pad the images so that the output dimensions are the same as the input dimensions, then it’s called valid padding. If we add a kernel of size <span class="math inline">\(f\times f\)</span> (with <span class="math inline">\(f\)</span> an odd number), the necessary padding on each side to keep the same shape is <span class="math inline">\(f//2\)</span>.</p>
+<p>So far, we’ve seen our kernel slide over the image grid by one unit, or in other words, it has a <em>stride</em> of 1. However, a kernel can have a stride greater than <span class="math inline">\(1\)</span> as well. A stride of 2 means creating roughly half the number of outputs.</p>
+<p><img src="ConvNets_files/figure-html/9aacb202-2811-4163-9ac8-f3ec35642981-2-66edf505-fd1c-4990-8987-8f36c3dfc1e7.png" class="img-fluid" alt="stride-2"> &gt; Figure 5: stride-2 convolutions</p>
+<p>If we have an image of size <span class="math inline">\(n\times n\)</span>, a kernel of size <span class="math inline">\(f\times f\)</span>, padding of <span class="math inline">\(p\)</span> pixels on each side, and a stride of <span class="math inline">\(s\)</span> then the output of the convolution operation will have a size of <span class="math inline">\((\frac{n-f+2p}{s} + 1) \times (\frac{n-f+2p}{s} + 1)\)</span>.</p>
+<p><img src="ConvNets_files/figure-html/9aacb202-2811-4163-9ac8-f3ec35642981-1-5f77f86c-fcb0-44f9-a735-f27656c91804.png" class="img-fluid" alt="example convolution.png"> &gt; Figure 6: With a <span class="math inline">\(5\times 5\)</span> input, <span class="math inline">\(4\times 4\)</span> kernel, and <span class="math inline">\(2\)</span> pixels of padding, we end up with a <span class="math inline">\(6\times 6\)</span> activation map.</p>
+</section>
+<section id="creating-a-cnn" class="level1">
+<h1>Creating a CNN</h1>
+<p>We are now able to create and train a Convolutional Neural Network. But before that, let’s recall how we’d build a simple one-layer MLP using <code>nn.Sequential</code>.</p>
+<div id="2feaa0ff-b6e7-4548-9645-a6ca603d5227" class="cell" data-execution_count="31">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>n,m <span class="op">=</span> x_train.shape</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> y_train.<span class="bu">max</span>()<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>nh <span class="op">=</span> <span class="dv">50</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="dcf60599-d411-462d-b8d4-2e5bab8d3850" class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> nn.Sequential(nn.Linear(m,nh), nn.ReLU(), nn.Linear(nh,<span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>What if we use the same idea to build a CNN as well.</p>
+<div id="01611325-d583-4865-ba3a-8f1a1c5cbd06" class="cell" data-execution_count="33">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>broken_cnn <span class="op">=</span> nn.Sequential(</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    nn.Conv2d(<span class="dv">1</span>, <span class="dv">30</span>, kernel_size<span class="op">=</span><span class="dv">3</span>, padding<span class="op">=</span><span class="dv">1</span>),</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    nn.ReLU(),</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    nn.Conv2d(<span class="dv">30</span>, <span class="dv">10</span>, kernel_size<span class="op">=</span><span class="dv">3</span>, padding<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="4437dbd8-1fd4-40cf-aec9-3c65636cd311" class="cell" data-execution_count="34">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>broken_cnn(xb).shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="34">
+<pre><code>torch.Size([16, 10, 28, 28])</code></pre>
+</div>
+</div>
+<p>We want to have 10 output channels for each of the 16 images in the batch which isn’t the case here.</p>
+<p>To make our ConvNet architecture, we’ll first create a <code>conv</code> function with appropriate input channels, output channels, stride, kernel size, and padding which returns a sequential model with an optional activation function.</p>
+<div id="70d3c303-a793-4589-b1c7-baf61bc003ba" class="cell" data-execution_count="35">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> conv(ni, nf, ks<span class="op">=</span><span class="dv">3</span>, stride<span class="op">=</span><span class="dv">2</span>, act<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> nn.Conv2d(ni, nf, kernel_size<span class="op">=</span>ks, stride<span class="op">=</span>stride, padding<span class="op">=</span>ks<span class="op">//</span><span class="dv">2</span>)</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> act: res <span class="op">=</span> nn.Sequential(res, nn.ReLU())</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> res</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>and then put those <code>conv</code> functions together to get our ConvNet architecture. The <code>nn.Flatten()</code> removes the unneccesary unit axes. The commented dimensions represent the dimensions of the output from that conv layer.</p>
+<div id="a1d9b100-cc95-40f6-9bc3-77b5f51a23b8" class="cell" data-execution_count="36">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>simple_cnn <span class="op">=</span> nn.Sequential(</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>    conv(<span class="dv">1</span>, <span class="dv">4</span>),                 <span class="co">#14x14</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    conv(<span class="dv">4</span>, <span class="dv">8</span>),                 <span class="co">#7x7</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    conv(<span class="dv">8</span>, <span class="dv">16</span>),                <span class="co">#4x4</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    conv(<span class="dv">16</span>, <span class="dv">16</span>),               <span class="co">#2x2</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    conv(<span class="dv">16</span>, <span class="dv">10</span>, act<span class="op">=</span><span class="va">False</span>),    <span class="co">#1x1</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    nn.Flatten()</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="d6f8c9b7-7a9b-4077-ac02-a51397f07257" class="cell" data-execution_count="37">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>simple_cnn(xb).shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="37">
+<pre><code>torch.Size([16, 10])</code></pre>
+</div>
+</div>
+<p>Now lets create our Datasets and DataLoaders to create batches for training.</p>
+<div id="0dd1330e-d312-412f-b043-27f833ca1a8b" class="cell" data-execution_count="38">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>x_imgs <span class="op">=</span> x_train.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">28</span>, <span class="dv">28</span>)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>xv_imgs <span class="op">=</span> x_valid.view(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">28</span>, <span class="dv">28</span>)</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>train_ds, valid_ds <span class="op">=</span> Dataset(x_imgs, y_train), Dataset(xv_imgs, y_valid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="e124d521-5b5a-48cf-8f96-5d48bba73750" class="cell" data-execution_count="39">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>def_device <span class="op">=</span> <span class="st">'mps'</span> <span class="cf">if</span> torch.backends.mps.is_available() <span class="cf">else</span> <span class="st">'cuda'</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">'cpu'</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> to_device(x, device<span class="op">=</span>def_device):</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(x, torch.Tensor): <span class="cf">return</span> x.to(device)</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(x, Mapping): <span class="cf">return</span> {k:v.to(device) <span class="cf">for</span> k,v <span class="kw">in</span> x.items()}</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">type</span>(x)(to_device(o, device) <span class="cf">for</span> o <span class="kw">in</span> x)</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> collate_device(b): <span class="cf">return</span> to_device(default_collate(b))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="3d280ca6-4bd9-4150-a913-c3229495c516" class="cell" data-execution_count="40">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>bs <span class="op">=</span> <span class="dv">256</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>lr <span class="op">=</span> <span class="fl">0.4</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>train_dl,valid_dl <span class="op">=</span> get_dls(train_ds, valid_ds, bs, collate_fn<span class="op">=</span>collate_device)</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>opt <span class="op">=</span> optim.SGD(simple_cnn.parameters(), lr<span class="op">=</span>lr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Notice that we move our model (and its parameters) to the gpu (if its available) to speed up training.</p>
+<p>We’ll be using accuracy as a metric.</p>
+<p>Let’s call <code>fit</code> and train for 5 epochs.</p>
+<div id="a1af9200-1cfd-4787-951f-0c4dc4fa5043" class="cell" data-execution_count="41">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>loss,acc <span class="op">=</span> fit(<span class="dv">5</span>, simple_cnn.to(def_device), F.cross_entropy, opt, train_dl, valid_dl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>epoch:0, loss:0.9480767825126648, accuracy:0.715
+epoch:1, loss:0.26140550297498705, accuracy:0.9215
+epoch:2, loss:0.20503890758752824, accuracy:0.9388
+epoch:3, loss:0.13651981556415557, accuracy:0.9597
+epoch:4, loss:0.12075043138265609, accuracy:0.9665</code></pre>
+</div>
+</div>
+<p>and it seems to be working fine.</p>
+<p>Now let’s reduce the learning rate to 0.1 and train again for 5 epochs.</p>
+<div id="fcaedcd5-ba7b-4d28-b45f-19b9ebe4a77c" class="cell" data-execution_count="42">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>opt <span class="op">=</span> optim.SGD(simple_cnn.parameters(), lr<span class="op">=</span>lr<span class="op">/</span><span class="dv">4</span>)</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>loss,acc <span class="op">=</span> fit(<span class="dv">5</span>, simple_cnn.to(def_device), F.cross_entropy, opt, train_dl, valid_dl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>epoch:0, loss:0.09355406395196915, accuracy:0.9733
+epoch:1, loss:0.08985215668007732, accuracy:0.9746
+epoch:2, loss:0.08949725909978151, accuracy:0.9743
+epoch:3, loss:0.08952338592857123, accuracy:0.9743
+epoch:4, loss:0.10270511233061552, accuracy:0.9697</code></pre>
+</div>
+</div>
+<p>… and accuracy has improved to 0.97!</p>
+<p>That was all about building and training ConvNets from the ground up.</p>
+<p>Thankyou for reading.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
