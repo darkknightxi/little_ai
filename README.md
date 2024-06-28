@@ -1,6 +1,8 @@
 # Introduction
+
 <img src="littleai.jpg" height="500" width="1048">
 littleai is a lightweight and flexible deep learning library for building and training deep learning models with very minimal code and allows for a lot of customization.
+
 # Example Usage
 
 ## Setup
