@@ -52,7 +52,7 @@ model = nn.Sequential(
 ```
 
 ## Create and Fit the Learner
-The heart of little_ai is the Learner class. It pulls together the data, model and loss function, and can be extended in all sorts of cool ways using callbacks. Here's a somewhat minimal example, training our model on this classification task and plotting some stats as we do so:
+The heart of little_ai is the `Learner` class. It pulls together the data, model and loss function, and can be extended in all sorts of cool ways using callbacks. Here's a somewhat minimal example, training our model on this classification task and plotting some stats as we do so:
 
 
 ```python
